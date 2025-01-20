@@ -1,11 +1,22 @@
 const axios = require('axios');
 const LenderStatus = require('../../models/LenderStatus');
 const dotenv = require('dotenv');
+const fs = require('fs');
+const path = require('path');
 
 dotenv.config();
 
+
+// Define the log file path outside the controller folder
+const logFilePath = path.join(__dirname, '../..', 'logs', 'eligibility_log.json');
+
+// Ensure the logs directory exists
+if (!fs.existsSync(path.join(__dirname, '../..', 'logs'))) {
+    fs.mkdirSync(path.join(__dirname, '../..', 'logs'));
+}
+
 exports.createLead = async (req) => {
-    const { lender_name, lead_id } = req;
+    const { lenders:lender_name, lead_id } = req;
 
     try {
         console.log('Received request:', { lender_name, lead_id });
@@ -77,7 +88,7 @@ exports.createLead = async (req) => {
             await saveLenderStatus(lead_id, lender_name, 'create-lead', createLeadResponseData);
         }
 
-        res.status(200).json({
+        const response = {
             status: 'success',
             message: 'Process completed successfully',
             data: [
@@ -86,16 +97,24 @@ exports.createLead = async (req) => {
                     "Create-Lead": createLeadResponseData || null
                 }
             ],
-            errors: []
-        });
+            errors: [],
+            lead_id
+        };
+        logResponse('Process completed successfully', response);
+        console.log('Process completed successfully', response);
+      
     } catch (error) {
         console.error('Error occurred:', error);
-        res.status(500).json({
+        const response = {
             status: 'failure',
             message: 'Internal server error',
             data: null,
-            errors: [{ message: error.message }]
-        });
+            errors: [{ message: error.message }],
+            lead_id
+        };
+
+        logResponse('Error Occurred:', response);
+
     }
 };
 
@@ -113,3 +132,17 @@ const saveLenderStatus = async (lead_id, lender_name, api_name, responseData) =>
         console.log(`Saved lender status for ${key}: ${value}`);
     }
 };
+
+// Function to log response to a file
+function logResponse(event, response) {
+    const logEntry = {
+        event,
+        timestamp: new Date().toISOString(),
+        response
+    };
+    fs.appendFile(logFilePath, JSON.stringify(logEntry) + '\n', (err) => {
+        if (err) {
+            console.error('Error logging response:', err);
+        }
+    });
+}

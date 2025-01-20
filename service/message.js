@@ -11,26 +11,40 @@ const encodedPassword = encodeURIComponent(password); // my%40secret
 
 const url = `amqp://${encodedUsername}:${encodedPassword}@${host}:${port}`;
 
-async function publishMessage(exchangeName, routingKey, leadData) {
+async function setupChannel() {
   const connection = await amqp.connect(url);
   const channel = await connection.createChannel();
-  
-  await channel.assertExchange(exchangeName, "direct");
+  return channel;
+}
 
-  await channel.publish(
-    exchangeName,
-    routingKey,
-    Buffer.from(JSON.stringify(leadData))
-  );
+async function publishMessage(exchangeName, routingKey, leadData) {
 
-  console.log(
-    `The new ${routingKey} log is sent to exchange ${exchangeName}`
-  );
-  // Close the connection
-  setTimeout(() => {
-    channel.close();
-    connection.close();
-  }, 500);
+  try {
+
+    setupChannel().then(channel => {
+      channel.assertExchange(exchangeName, "direct");
+      channel.publish(
+        exchangeName,
+        routingKey,
+        Buffer.from(JSON.stringify(leadData))
+      );
+
+      console.log(
+        `The new ${routingKey} log is sent to exchange ${exchangeName}`
+      );
+      // Close the connection
+      setTimeout(() => {
+        //channel.close();
+        // connection.close();
+      }, 50000);
+    }).catch(err => {
+      console.error('Error:', err);
+    });
+
+  } catch (err) {
+    console.error('Error in publish message', err);
+
+  }
 }
 
 module.exports = { publishMessage };

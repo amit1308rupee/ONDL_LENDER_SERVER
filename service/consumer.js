@@ -21,7 +21,7 @@ async function consumeMessagesBreLender(exchangeName, routingKey, queueName) {
     const data = JSON.parse(msg.content);
     
     console.log(data);
-    // channel.ack(msg);
+    channel.ack(msg);
   });
 }
 
