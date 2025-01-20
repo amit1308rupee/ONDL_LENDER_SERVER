@@ -1,5 +1,6 @@
 const amqp = require('amqplib');
-// RabbitMQ connection URL    
+// RabbitMQ connection URL  
+const {createLead} = require("../controllers/Queue/QueueLeadController")
 
 const username = 'sunil';
 const password = 'W?Xoav}Hg67?PZ#2e';
@@ -19,7 +20,7 @@ async function consumeMessagesBreLender(exchangeName, routingKey, queueName) {
 
   channel.consume(q.queue, (msg) => {
     const data = JSON.parse(msg.content);
-    
+    createLead(data);
     console.log(data);
     channel.ack(msg);
   });
