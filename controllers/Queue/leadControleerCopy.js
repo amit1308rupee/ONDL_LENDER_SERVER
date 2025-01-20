@@ -12,8 +12,8 @@ if (!fs.existsSync(path.join(__dirname, '../..', 'logs'))) {
     fs.mkdirSync(path.join(__dirname, '../..', 'logs'));
 }
 
-exports.createLead = async (req) => {
-    const { lenders:lender_name, lead_id } = req;
+exports.createLead = async (req, res) => {
+    const { lender_name, lead_id } = req.body;
 
     try {
         console.log('Received request:', { lender_name, lead_id });
@@ -54,8 +54,8 @@ exports.createLead = async (req) => {
             errors: []
         };
         logResponse('Process completed successfully', response);
-        // res.status(200).json(response);
-        console.log('Process completed successfully',response);
+        res.status(200).json(response);
+        console.log('Process completed successfully');
 
     } catch (error) {
         console.error('Error occurred:', error);
@@ -66,7 +66,7 @@ exports.createLead = async (req) => {
             errors: [{ message: error.message }]
         };
         logResponse('Error occurred', response);
-        // res.status(500).json(response);
+        res.status(500).json(response);
     }
 };
 

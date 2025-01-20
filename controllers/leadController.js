@@ -1,5 +1,5 @@
 const axios = require('axios');
-const LenderStatus = require('../models/LenderStatus');
+const LenderStatus = require('../models/LenderStatusModel');
 const dotenv = require('dotenv');
 
 dotenv.config();
