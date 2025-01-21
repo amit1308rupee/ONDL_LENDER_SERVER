@@ -1,6 +1,6 @@
 const axios = require('axios');
-const { callDedupeAPI, callCreateLeadAPI } = require('../../service/Lender/WeCredit');
-const { saveLenderStatus } = require('../../models/LenderStatusModel');
+const { callDedupeAPI, callCreateLeadAPI } = require('../service/Lender/WeCredit');
+const { saveLenderStatus } = require('../models/LenderStatusModel');
 const fs = require('fs');
 const path = require('path');
 
