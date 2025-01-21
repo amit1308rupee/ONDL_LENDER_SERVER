@@ -42,6 +42,20 @@ exports.createLead = async (req) => {
             await saveLenderStatus(lead_id, lender_name, 'create-lead', createLeadResponseData);
         }
 
+        // Queue Message-----------------------------------------------------------------------
+        const queueMessage = {
+            lead_id: lead_id,
+            lender_name:lender_name,
+            status:"Lead Created"
+        }
+        try {
+            console.log('Before  publishMessage - Lender_Partner');
+            publishMessage("Lender_Partner","lead", queueMessage);
+            console.log('After  publishMessage - Lender_Partner');
+        } catch (error) {
+            console.error('Error:', error);
+        }
+       //---------------------------------------------------------------------------------------------
         const response = {
             status: 'success',
             message: 'Process completed successfully',
