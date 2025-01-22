@@ -47,7 +47,8 @@ exports.createLead = async (req) => {
         const queueMessage = {
             lead_id: lead_id,
             lender_name:lender_name,
-            status:"Lead Created"
+            status:"Lead Created",
+            status_code: createLeadResponseData.statusCode
         }
         try {
             console.log('Before  publishMessage - Lender_Partner');
