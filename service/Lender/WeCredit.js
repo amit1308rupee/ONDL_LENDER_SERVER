@@ -1,8 +1,94 @@
 const axios = require('axios');
 const dotenv = require('dotenv');
 dotenv.config();
+const fs = require('fs');
+const path = require('path');
+const { saveLenderStatus } = require('../../models/LenderStatusModel');
+const { publishMessage } = require('../../service/message');
 
-exports.callDedupeAPI = async (mobile) => {
+// Define the log file path outside the controller folder
+const logFilePath = path.join(__dirname, '../..', 'logs', 'eligibility_log.json');
+
+// Ensure the logs directory exists
+if (!fs.existsSync(path.join(__dirname, '../..', 'logs'))) {
+    fs.mkdirSync(path.join(__dirname, '../..', 'logs'));
+}
+
+// Function to log response to a file
+function logResponse(event, response) {
+    const logEntry = {
+        event,
+        timestamp: new Date().toISOString(),
+        response
+    };
+    fs.appendFile(logFilePath, JSON.stringify(logEntry) + '\n', (err) => {
+        if (err) {
+            console.error('Error logging response:', err);
+        }
+    });
+}
+
+exports.processWeCreditLead = async (partnerData, lead_id, lender_name) => {
+    try {
+        const mobile = partnerData.lead.mobile;
+
+        // Call the dedupe API
+        const dedupeData = await exports.callDedupeAPI(mobile, lead_id, lender_name);
+
+        // Save dedupe response
+        await saveLenderStatus(lead_id, lender_name, 'check-dedupe', dedupeData);
+
+        let createLeadResponseData;
+        if (dedupeData.statusCode === 1003) {
+            // Call the create lead API
+            createLeadResponseData = await exports.callCreateLeadAPI(partnerData, lead_id, lender_name);
+
+            // Save create lead response
+            await saveLenderStatus(lead_id, lender_name, 'create-lead', createLeadResponseData);
+
+            // Queue Message
+            const queueMessage = {
+                lead_id: lead_id,
+                lender_name: lender_name,
+                status: "Lead Created",
+                status_code: createLeadResponseData.statusCode
+            };
+            try {
+                console.log('Before publishMessage - Lender_Partner');
+                publishMessage("Lender_Partner", "lead", queueMessage);
+                console.log('After publishMessage - Lender_Partner');
+            } catch (error) {
+                console.error('Error:', error);
+            }
+        }
+
+        const response = {
+            status: 'success',
+            message: 'Process completed successfully',
+            data: [
+                {
+                    "Dedupe-Check": dedupeData,
+                    "Create-Lead": createLeadResponseData || null
+                }
+            ],
+            errors: []
+        };
+        logResponse('Process completed successfully', response);
+        console.log('Process completed successfully', response);
+
+    } catch (error) {
+        console.error('Error occurred:', error);
+        const response = {
+            status: 'failure',
+            message: 'Internal server error',
+            data: null,
+            errors: [{ message: error.message }]
+        };
+        logResponse('Error occurred', response);
+    }
+};
+
+exports.callDedupeAPI = async (mobile, lead_id, lender_name) => {
     try {
         console.log('Calling dedupe API...');
         const dedupeResponse = await axios.post(`${process.env.WECREDIT_DEDUPE_API_URL}/api/v2/sublender/check-dedupe`, {
@@ -14,14 +100,35 @@ exports.callDedupeAPI = async (mobile) => {
             }
         });
         console.log('Dedupe API response:', dedupeResponse.data);
+        
+        // Log response
+        logResponse('Dedupe API Response', {
+            status: 'success',
+            message: 'Dedupe API called successfully',
+            data: dedupeResponse.data,
+            lead_id,
+            lender_name
+        });
+
         return dedupeResponse.data;
     } catch (error) {
         console.error('Error calling dedupe API:', error);
+        
+        // Log error response
+        logResponse('Error Calling Dedupe API', {
+            status: 'failure',
+            message: 'Error calling dedupe API',
+            data: null,
+            errors: [{ message: error.message }],
+            lead_id,
+            lender_name
+        });
+
         throw error;
     }
 };
 
-exports.callCreateLeadAPI = async (partnerData) => {
+exports.callCreateLeadAPI = async (partnerData, lead_id, lender_name) => {
     try {
         const dobString = partnerData?.lead?.dob;
         const dobDate = new Date(dobString);
@@ -53,9 +160,30 @@ exports.callCreateLeadAPI = async (partnerData) => {
             }
         });
         console.log('Create lead API response:', createLeadResponse.data);
+        
+        // Log response
+        logResponse('Create Lead API Response', {
+            status: 'success',
+            message: 'Create Lead API called successfully',
+            data: createLeadResponse.data,
+            lead_id,
+            lender_name
+        });
+
         return createLeadResponse.data;
     } catch (error) {
         console.error('Error calling create lead API:', error);
+        
+        // Log error response
+        logResponse('Error Calling Create Lead API', {
+            status: 'failure',
+            message: 'Error calling create lead API',
+            data: null,
+            errors: [{ message: error.message }],
+            lead_id,
+            lender_name
+        });
+
         throw error;
     }
 };

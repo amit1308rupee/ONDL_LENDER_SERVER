@@ -1,5 +1,5 @@
 const axios = require('axios');
-const { callDedupeAPI, callCreateLeadAPI } = require('../service/Lender/WeCredit');
+const { processWeCreditLead } = require('../service/Lender/WeCredit');
 const { saveLenderStatus } = require('../models/LenderStatusModel');
 const fs = require('fs');
 const path = require('path');
@@ -27,34 +27,11 @@ exports.createLead = async (req, res) => {
         const partnerData = partnerResponse?.data?.data;
         const mobile = partnerData.lead.mobile;
 
-        // Call the dedupe API
-        const dedupeData = await callDedupeAPI(mobile);
-
-        // Save dedupe response
-        await saveLenderStatus(lead_id, lender_name, 'check-dedupe', dedupeData);
-
-        let createLeadResponseData;
-        if (dedupeData.statusCode === 1003) {
-            // Call the create lead API
-            createLeadResponseData = await callCreateLeadAPI(partnerData);
-
-            // Save create lead response
-            await saveLenderStatus(lead_id, lender_name, 'create-lead', createLeadResponseData);
+        if (lender_name === "WeCredit") {
+            await processWeCreditLead(partnerData, lead_id, lender_name);
+        } else {
+            // Handle other lenders if necessary
         }
-
-        const response = {
-            status: 'success',
-            message: 'Process completed successfully',
-            data: [
-                {
-                    "Dedupe-Check": dedupeData,
-                    "Create-Lead": createLeadResponseData || null
-                }
-            ],
-            errors: []
-        };
-        logResponse('Process completed successfully', response);
-        res.status(200).json(response);
         console.log('Process completed successfully');
 
     } catch (error) {

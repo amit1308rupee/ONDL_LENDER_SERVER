@@ -1,7 +1,5 @@
 const axios = require('axios');
-const { callDedupeAPI, callCreateLeadAPI } = require('../../service/Lender/WeCredit');
-const { saveLenderStatus } = require('../../models/LenderStatusModel');
-const { publishMessage} = require('../../service/message');
+const { processWeCreditLead } = require('../../service/Lender/WeCredit');
 const fs = require('fs');
 const path = require('path');
 
@@ -12,79 +10,6 @@ const logFilePath = path.join(__dirname, '../..', 'logs', 'eligibility_log.json'
 if (!fs.existsSync(path.join(__dirname, '../..', 'logs'))) {
     fs.mkdirSync(path.join(__dirname, '../..', 'logs'));
 }
-
-exports.createLead = async (req) => {
-    const { lenders:lender_name, lead_id } = req;
-
-    try {
-        console.log('Received request:', { lender_name, lead_id });
-
-        // Call the partner API
-        console.log('Calling partner API...');
-        const partnerResponse = await axios.get(`${process.env.PARTNER_API_URL}/api/partners/lead/${lead_id}`, {
-            headers: { 'Content-Type': 'application/json' }
-        });
-        console.log('Partner API response:', partnerResponse.data);
-        const partnerData = partnerResponse?.data?.data;
-        const mobile = partnerData.lead.mobile;
-
-        // Call the dedupe API
-        const dedupeData = await callDedupeAPI(mobile);
-
-        // Save dedupe response
-        await saveLenderStatus(lead_id, lender_name, 'check-dedupe', dedupeData);
-
-        let createLeadResponseData;
-        if (dedupeData.statusCode === 1003) {
-            // Call the create lead API
-            createLeadResponseData = await callCreateLeadAPI(partnerData);
-
-            // Save create lead response
-            await saveLenderStatus(lead_id, lender_name, 'create-lead', createLeadResponseData);
-        }
-
-        // Queue Message-----------------------------------------------------------------------
-        const queueMessage = {
-            lead_id: lead_id,
-            lender_name:lender_name,
-            status:"Lead Created",
-            status_code: createLeadResponseData.statusCode
-        }
-        try {
-            console.log('Before  publishMessage - Lender_Partner');
-            publishMessage("Lender_Partner","lead", queueMessage);
-            console.log('After  publishMessage - Lender_Partner');
-        } catch (error) {
-            console.error('Error:', error);
-        }
-       //---------------------------------------------------------------------------------------------
-        const response = {
-            status: 'success',
-            message: 'Process completed successfully',
-            data: [
-                {
-                    "Dedupe-Check": dedupeData,
-                    "Create-Lead": createLeadResponseData || null
-                }
-            ],
-            errors: []
-        };
-        logResponse('Process completed successfully', response);
-        // res.status(200).json(response);
-        console.log('Process completed successfully',response);
-
-    } catch (error) {
-        console.error('Error occurred:', error);
-        const response = {
-            status: 'failure',
-            message: 'Internal server error',
-            data: null,
-            errors: [{ message: error.message }]
-        };
-        logResponse('Error occurred', response);
-        // res.status(500).json(response);
-    }
-};
 
 // Function to log response to a file
 function logResponse(event, response) {
@@ -99,3 +24,35 @@ function logResponse(event, response) {
         }
     });
 }
+
+exports.createLead = async (req) => {
+    const { lenders: lender_name, lead_id } = req;
+
+    try {
+        console.log('Received request:', { lender_name, lead_id });
+
+        // Call the partner API
+        console.log('Calling partner API...');
+        const partnerResponse = await axios.get(`${process.env.PARTNER_API_URL}/api/partners/lead/${lead_id}`, {
+            headers: { 'Content-Type': 'application/json' }
+        });
+        console.log('Partner API response:', partnerResponse.data);
+        const partnerData = partnerResponse?.data?.data;
+
+        if (lender_name === "WeCredit") {
+            await processWeCreditLead(partnerData, lead_id, lender_name);
+        } else {
+            // Handle other lenders if necessary
+        }
+
+    } catch (error) {
+        console.error('Error occurred:', error);
+        const response = {
+            status: 'failure',
+            message: 'Internal server error',
+            data: null,
+            errors: [{ message: error.message }]
+        };
+        logResponse('Error occurred', response);
+    }
+};
