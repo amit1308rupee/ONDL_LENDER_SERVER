@@ -59,7 +59,8 @@ exports.processWeCreditLead = async (partnerData, lead_id, lender_name) => {
                 const createQueueMessage = {
                     lender_accepted: true,
                     lender_name: lender_name,
-                    lead_id: lead_id
+                    lead_id: lead_id,
+                    partner_Data:extractLeadData(partnerData?.lead)
                 }
                 try {
                     console.log('Before publishMessage - Lender_Partner');
@@ -74,7 +75,8 @@ exports.processWeCreditLead = async (partnerData, lead_id, lender_name) => {
                 const dedupeQueueMessage = {
                     lender_accepted: false,
                     lender_name: lender_name,
-                    lead_id: lead_id
+                    lead_id: lead_id,
+                    partner_Data:extractLeadData(partnerData?.lead)
                 }
                 try {
                     await publishMessage("Lender_Bre", "lead", dedupeQueueMessage);
@@ -87,7 +89,8 @@ exports.processWeCreditLead = async (partnerData, lead_id, lender_name) => {
             const dedupeQueueMessage = {
                 lender_accepted: false,
                 lender_name: lender_name,
-                lead_id: lead_id
+                lead_id: lead_id,
+                partner_Data:extractLeadData(partnerData?.lead)
             }
             try {
                 await publishMessage("Lender_Bre", "lead", dedupeQueueMessage);
@@ -222,3 +225,27 @@ exports.callCreateLeadAPI = async (partnerData, lead_id, lender_name) => {
         throw error;
     }
 };
+
+
+function extractLeadData(leadData) {
+    const dob = new Date(leadData.dob);
+    let age = new Date().getFullYear() - dob.getFullYear();
+    const monthDifference = new Date().getMonth() - dob.getMonth();
+    const dayDifference = new Date().getDate() - dob.getDate();
+
+    // Adjust age if the current date is before the birthday in the current year
+    if (monthDifference < 0 || (monthDifference === 0 && dayDifference < 0)) {
+        age--;
+    }
+
+    return {
+        pancard: leadData.pancard,
+        name: leadData.customer_name,
+        mobile: leadData.mobile,
+        salary: leadData.monthly_income,
+        age: age,
+        pincode: leadData.current_address.pincode,
+        lead_id: leadData.lead_id,
+        current_address: leadData.current_address
+    };
+}
