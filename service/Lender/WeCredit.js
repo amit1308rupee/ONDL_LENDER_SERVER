@@ -60,7 +60,7 @@ exports.processWeCreditLead = async (partnerData, lead_id, lender_name) => {
                     lender_accepted: true,
                     lender_name: lender_name,
                     lead_id: lead_id,
-                    partner_Data:extractLeadData(partnerData?.lead)
+                    partner_Data:extractLeadData(partnerData)
                 }
                 try {
                     console.log('Before publishMessage - Lender_Partner');
@@ -76,7 +76,7 @@ exports.processWeCreditLead = async (partnerData, lead_id, lender_name) => {
                     lender_accepted: false,
                     lender_name: lender_name,
                     lead_id: lead_id,
-                    partner_Data:extractLeadData(partnerData?.lead)
+                    partner_Data:extractLeadData(partnerData)
                 }
                 try {
                     await publishMessage("Lender_Bre", "lead", dedupeQueueMessage);
@@ -90,7 +90,7 @@ exports.processWeCreditLead = async (partnerData, lead_id, lender_name) => {
                 lender_accepted: false,
                 lender_name: lender_name,
                 lead_id: lead_id,
-                partner_Data:extractLeadData(partnerData?.lead)
+                partner_Data:extractLeadData(partnerData)
             }
             try {
                 await publishMessage("Lender_Bre", "lead", dedupeQueueMessage);
@@ -227,8 +227,8 @@ exports.callCreateLeadAPI = async (partnerData, lead_id, lender_name) => {
 };
 
 
-function extractLeadData(leadData) {
-    const dob = new Date(leadData.dob);
+function extractLeadData(partnerData) {
+    const dob = new Date(partnerData?.lead?.dob);
     let age = new Date().getFullYear() - dob.getFullYear();
     const monthDifference = new Date().getMonth() - dob.getMonth();
     const dayDifference = new Date().getDate() - dob.getDate();
@@ -239,13 +239,13 @@ function extractLeadData(leadData) {
     }
 
     return {
-        pancard: leadData.pancard,
-        name: leadData.customer_name,
-        mobile: leadData.mobile,
-        salary: leadData.monthly_income,
+        pancard: partnerData?.lead?.pancard,
+        name: partnerData?.lead?.customer_name,
+        mobile: partnerData?.lead?.mobile,
+        salary: partnerData?.lead?.monthly_income,
         age: age,
-        pincode: leadData.current_address.pincode,
-        lead_id: leadData.lead_id,
-        current_address: leadData.current_address
+        pincode: partnerData?.current_address.pincode,
+        lead_id: partnerData?.lead?.lead_id,
+        current_address: partnerData?.current_address
     };
 }
