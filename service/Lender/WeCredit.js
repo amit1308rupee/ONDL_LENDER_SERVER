@@ -46,19 +46,54 @@ exports.processWeCreditLead = async (partnerData, lead_id, lender_name) => {
             // Save create lead response
             await saveLenderStatus(lead_id, lender_name, 'create-lead', createLeadResponseData);
 
-            // Queue Message
-            const queueMessage = {
-                lead_id: lead_id,
+
+            if (createLeadResponseData.statusCode === 2003) {
+
+                // Queue Message
+                const queueMessage = {
+                    lead_id: lead_id,
+                    lender_name: lender_name,
+                    status: "Lead Created",
+                    status_code: createLeadResponseData.statusCode
+                };
+                const createQueueMessage = {
+                    lender_accepted: true,
+                    lender_name: lender_name,
+                    lead_id: lead_id
+                }
+                try {
+                    console.log('Before publishMessage - Lender_Partner');
+                    await publishMessage("Lender_Partner", "lead", queueMessage);
+                    console.log('After publishMessage - Lender_Partner');
+                    await publishMessage("Lender_Bre", "lead", createQueueMessage);
+                    console.log('After publishMessage - Lender_Bre');
+                } catch (error) {
+                    console.error('Error from Lender_Partner:', error);
+                }
+            } else {
+                const dedupeQueueMessage = {
+                    lender_accepted: false,
+                    lender_name: lender_name,
+                    lead_id: lead_id
+                }
+                try {
+                    await publishMessage("Lender_Bre", "lead", dedupeQueueMessage);
+                    console.log('After publishMessage - Lender_Bre');
+                } catch (error) {
+                    console.error('Error from Lender_Bre:', error);
+                }
+            }
+        } else {
+            const dedupeQueueMessage = {
+                lender_accepted: false,
                 lender_name: lender_name,
-                status: "Lead Created",
-                status_code: createLeadResponseData.statusCode
-            };
+                lead_id: lead_id
+            }
             try {
-                console.log('Before publishMessage - Lender_Partner');
-                publishMessage("Lender_Partner", "lead", queueMessage);
-                console.log('After publishMessage - Lender_Partner');
+                await publishMessage("Lender_Bre", "lead", dedupeQueueMessage);
+                console.log('After publishMessage - Lender_Bre');
             } catch (error) {
-                console.error('Error:', error);
+                console.error('Error from Lender_Bre:', error);
             }
         }
 
@@ -100,7 +135,7 @@ exports.callDedupeAPI = async (mobile, lead_id, lender_name) => {
             }
         });
         console.log('Dedupe API response:', dedupeResponse.data);
-        
+
         // Log response
         logResponse('Dedupe API Response', {
             status: 'success',
@@ -113,7 +148,7 @@ exports.callDedupeAPI = async (mobile, lead_id, lender_name) => {
         return dedupeResponse.data;
     } catch (error) {
         console.error('Error calling dedupe API:', error);
-        
+
         // Log error response
         logResponse('Error Calling Dedupe API', {
             status: 'failure',
@@ -143,7 +178,7 @@ exports.callCreateLeadAPI = async (partnerData, lead_id, lender_name) => {
             dob: formattedDob,
             pincode: parseInt(partnerData?.current_address?.pincode, 10),
             gender: partnerData?.lead?.gender?.toLowerCase() || "male",
-            email:  partnerData?.lead?.personal_email || "",
+            email: partnerData?.lead?.personal_email || "",
             permanentAddress: `${partnerData?.permanent_address?.address_line_1}, ${partnerData?.permanent_address?.address_line_2}, ${partnerData?.permanent_address?.city}, ${partnerData?.permanent_address?.state}, ${partnerData?.permanent_address?.pincode}`,
             companyName: partnerData?.company_name || '',
             companyAddress: partnerData?.company_address || '',
@@ -160,7 +195,7 @@ exports.callCreateLeadAPI = async (partnerData, lead_id, lender_name) => {
             }
         });
         console.log('Create lead API response:', createLeadResponse.data);
-        
+
         // Log response
         logResponse('Create Lead API Response', {
             status: 'success',
@@ -173,7 +208,7 @@ exports.callCreateLeadAPI = async (partnerData, lead_id, lender_name) => {
         return createLeadResponse.data;
     } catch (error) {
         console.error('Error calling create lead API:', error);
-        
+
         // Log error response
         logResponse('Error Calling Create Lead API', {
             status: 'failure',
