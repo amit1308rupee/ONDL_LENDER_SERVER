@@ -36,7 +36,7 @@ const getLenderStatusByDateRange = async (lender_name, startDate, endDate) => {
             COUNT(CASE WHEN status_code >= 4000 AND status_code < 5000 THEN 1 END) as Disbursed,
             COUNT(CASE WHEN status_code >= 5000 THEN 1 END) as 'Create Failed'
         FROM LenderStatus
-        WHERE lender_name = ? AND created_at BETWEEN ? AND ?
+        WHERE lender_name = ? AND DATE(created_at) BETWEEN ? AND ?
         GROUP BY DATE(created_at)
         ORDER BY DATE(created_at) DESC
     `;

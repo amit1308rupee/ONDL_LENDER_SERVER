@@ -17,3 +17,5 @@
 {"event":"Error Calling Dedupe API","timestamp":"2025-01-27T12:35:48.839Z","response":{"status":"failure","message":"Error calling dedupe API","data":null,"errors":[{"message":"Request failed with status code 403"}],"lead_id":"Amit1352","lender_name":"WeCredit"}}
 {"event":"Error occurred","timestamp":"2025-01-27T12:35:48.840Z","response":{"status":"failure","message":"Internal server error","data":null,"errors":[{"message":"Request failed with status code 403"}]}}
 {"event":"Error occurred","timestamp":"2025-01-27T16:47:03.165Z","response":{"status":"failure","message":"Internal server error","data":null,"errors":[{"message":"Request failed with status code 404"}]}}
+{"event":"Error Calling Dedupe API","timestamp":"2025-01-27T17:44:00.935Z","response":{"status":"failure","message":"Error calling dedupe API","data":null,"errors":[{"message":"Request failed with status code 403"}],"lead_id":"Amit1358","lender_name":"WeCredit"}}
+{"event":"Error occurred","timestamp":"2025-01-27T17:44:00.936Z","response":{"status":"failure","message":"Internal server error","data":null,"errors":[{"message":"Request failed with status code 403"}]}}

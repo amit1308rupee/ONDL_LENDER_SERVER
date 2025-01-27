@@ -68,7 +68,7 @@ exports.getLenderLeads = async (req, res) => {
     const startDate = moment().subtract(6, 'days').startOf('day'); // Subtract 6 days to include today
 
     try {
-        const results = await getLenderStatusByDateRange(lender_name, startDate.toDate(), endDate.toDate());
+        const results = await getLenderStatusByDateRange(lender_name, startDate.format('YYYY-MM-DD'), endDate.format('YYYY-MM-DD'));
 
         // Create a map of results by date for easy lookup
         const resultsMap = results.reduce((map, result) => {
