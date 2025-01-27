@@ -41,7 +41,7 @@ exports.createLead = async (req) => {
 
         if (lender_name === "WeCredit") {
             await processWeCreditLead(partnerData, lead_id, lender_name);
-        } else if (lender_name === "fibe") {
+        } else if (lender_name === "Fibe") {
             await processWeCreditLead(partnerData, lead_id, lender_name);
         }
         else {
