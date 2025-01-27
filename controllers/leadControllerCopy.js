@@ -1,8 +1,9 @@
 const axios = require('axios');
 const { processWeCreditLead } = require('../service/Lender/WeCredit');
-const { saveLenderStatus } = require('../models/LenderStatusModel');
+const { saveLenderStatus, getLenderStatusByDateRange } = require('../models/LenderStatusModel');
 const fs = require('fs');
 const path = require('path');
+const moment = require('moment');
 
 // Define the log file path outside the controller folder
 const logFilePath = path.join(__dirname, '../..', 'logs', 'eligibility_log.json');
@@ -60,3 +61,42 @@ function logResponse(event, response) {
         }
     });
 }
+
+exports.getLenderLeads = async (req, res) => {
+    const { lender_name } = req.params;
+    const endDate = moment().startOf('day');
+    const startDate = moment().subtract(6, 'days').startOf('day'); // Subtract 6 days to include today
+
+    try {
+        const results = await getLenderStatusByDateRange(lender_name, startDate.toDate(), endDate.toDate());
+
+        // Create a map of results by date for easy lookup
+        const resultsMap = results.reduce((map, result) => {
+            map[moment(result.date).format('YYYY-MM-DD')] = result;
+            return map;
+        }, {});
+
+        // Generate the complete date range and fill in missing dates with zero values
+        const responseData = [];
+        for (let date = startDate.clone(); date.isSameOrBefore(endDate); date.add(1, 'days')) {
+            const formattedDate = date.format('YYYY-MM-DD');
+            responseData.push({
+                date: formattedDate,
+                Dedupe: resultsMap[formattedDate]?.Dedupe || 0,
+                'Create Failed': resultsMap[formattedDate]?.['Create Failed'] || 0,
+                Rejected: resultsMap[formattedDate]?.Rejected || 0,
+                'In-Progress': resultsMap[formattedDate]?.['In-Progress'] || 0,
+                Disbursed: resultsMap[formattedDate]?.Disbursed || 0
+            });
+        }
+
+        res.status(200).json(responseData);
+    } catch (error) {
+        console.error('Error fetching lender leads:', error);
+        res.status(500).json({
+            status: 'failure',
+            message: 'Internal server error',
+            errors: [{ message: error.message }]
+        });
+    }
+};
