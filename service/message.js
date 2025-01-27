@@ -28,6 +28,7 @@ async function publishMessage(exchangeName, routingKey, leadData) {
         routingKey,
         Buffer.from(JSON.stringify(leadData))
       );
+      console.log("data send", exchangeName, "Datas", leadData);
 
       console.log(
         `The new ${routingKey} log is sent to exchange ${exchangeName}`
