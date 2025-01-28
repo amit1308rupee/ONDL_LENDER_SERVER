@@ -17,7 +17,6 @@ async function handleDisconnect() {
     } catch (err) {
         console.error('Error connecting to the database:', err.message);
         handleDisconnect(); // Reconnect if the connection is lost
-        setTimeout(handleDisconnect, 2000); // Reconnect after 2 seconds
     }
 }
 
