@@ -90,6 +90,9 @@ exports.getLenderLeads = async (req, res) => {
             });
         }
 
+        // Sort the responseData array in descending order by date
+        responseData.sort((a, b) => moment(b.date).diff(moment(a.date)));
+
         res.status(200).json(responseData);
     } catch (error) {
         console.error('Error fetching lender leads:', error);
