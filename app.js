@@ -3,6 +3,7 @@ const morgan = require('morgan');
 const cors = require('cors'); 
 const leadRoutes = require('./routes/leadRoutes');
 const { consumeMessagesBreLender} = require('./service/consumer');
+const authMiddleware = require('./middleware/auth');
 
 const app = express();
 
@@ -13,6 +14,14 @@ app.use(cors())
 
 // Routes
 app.use('/api', leadRoutes);
+
+//WebHook
+app.post("/webhook/wc/status",authMiddleware, (req, res) => {
+    const payload = req.body;
+    console.log("Webhook received:", payload);
+    return res.status(200).json({payload})
+});// Extracting data from the payload const { leadId, lenderMessage, offerAmount, statusCode, statusMessage, utmLink, } = payload; // Respond to the sender res.status(200).send({ message: "Webhook received successfully" }); });
+
 
 
 //Queue
